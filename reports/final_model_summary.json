@@ -1,0 +1,55 @@
+{
+    "project": "DemandPilot",
+    "problem": "Retail demand forecasting",
+    "model": "XGBoost",
+    "model_artifact": "models/xgboost_demand_model.json",
+
+    "validation": {
+        "type": "time_based",
+        "horizon_days": 28
+    },
+
+    "evaluation_metrics": {
+        "primary_metric": "MAE",
+        "secondary_metric": "WAPE",
+        "baseline": {
+            "MAE": 1.2054,
+            "RMSE": 2.6601,
+            "sMAPE": 79.65,
+            "WAPE": 86.94
+        },
+        "xgboost": {
+            "MAE": 0.994,
+            "RMSE": 2.0223,
+            "sMAPE": 140.29,
+            "WAPE": 71.7
+        }
+    },
+
+    "improvement": {
+        "MAE_percent": 17.53,
+        "RMSE_percent": 23.98,
+        "WAPE_percent": 17.53
+    },
+
+    "error_analysis": {
+        "zero_demand_observations": 480460,
+        "positive_demand_observations": 373260,
+        "average_prediction_when_actual_demand_is_zero": 0.5745,
+        "MAE_on_positive_demand": 1.5341
+    },
+
+    "model_selection": {
+        "selected_model": "XGBoost",
+        "reason": "XGBoost achieved lower MAE and WAPE than the seasonal naive baseline on the 28-day time-based validation set."
+    },
+
+    "limitations": [
+        "The validation data contains a large number of zero-demand observations.",
+        "sMAPE is inflated by zero or near-zero actual demand values.",
+        "Forecast errors remain higher for some products and stores.",
+        "Further hyperparameter tuning and additional forecasting methods may improve performance."
+    ],
+
+    "status": "Phase 2 ML completed"
+}
