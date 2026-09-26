@@ -1,3 +1,4 @@
+@"
 # Python
 __pycache__/
 *.pyc
@@ -18,10 +19,14 @@ mlruns/
 # Jupyter
 .ipynb_checkpoints/
 
-# Large Generated Reports
+# DVC generated data
+data/processed/
+models/
+
+# Large generated reports
 reports/error_analysis.csv
 
-# OS / IDE Files
+# OS / IDE
 .DS_Store
 Thumbs.db
 .vscode/settings.json
