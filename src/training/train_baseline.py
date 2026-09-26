@@ -1,507 +1,292 @@
-from pathlib import Path
 import json
-import math
+from pathlib import Path
 
-import pandas as pd
 import numpy as np
-import pyarrow.parquet as pq
+import pandas as pd
+import pyarrow.dataset as ds
 
 
 # ============================================================
-# DEMANDPILOT - BASELINE MODEL
+# DEMANDPILOT BASELINE MODEL
+# Memory-Efficient Seasonal Naive Baseline
 # ============================================================
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+FEATURE_FILE = PROJECT_ROOT / "data" / "processed" / "features.parquet"
+REPORT_FILE = PROJECT_ROOT / "reports" / "baseline_metrics.json"
+
+VALIDATION_DAYS = 28
 
 print("=" * 60)
 print("DEMANDPILOT BASELINE MODEL")
 print("=" * 60)
 
-
-# ============================================================
-# 1. PATHS
-# ============================================================
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-FEATURE_FILE = (
-    PROJECT_ROOT
-    / "data"
-    / "processed"
-    / "features.parquet"
-)
-
-REPORT_DIR = (
-    PROJECT_ROOT
-    / "reports"
-)
-
-REPORT_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
-
-METRICS_FILE = (
-    REPORT_DIR
-    / "baseline_metrics.json"
-)
-
-
-print("\nProject root:")
+print(f"\nProject root:")
 print(PROJECT_ROOT)
 
-print("\nFeature file:")
+print(f"\nFeature file:")
 print(FEATURE_FILE)
 
 
 # ============================================================
-# 2. LOAD FEATURE DATA
+# STEP 1: Define validation period
 # ============================================================
 
 print("\n" + "=" * 60)
-print("STEP 1: Loading feature dataset")
+print("STEP 1: Creating validation period")
 print("=" * 60)
 
+validation_start = "2016-03-28"
+validation_end = "2016-04-24"
 
-# Use PyArrow directly because pandas.read_parquet()
-# caused an ArrowKeyError in your environment.
+print(f"Validation start: {validation_start}")
+print(f"Validation end:   {validation_end}")
+print(f"Validation days:  {VALIDATION_DAYS}")
 
-table = pq.read_table(
+
+# ============================================================
+# STEP 2: Open Parquet dataset
+# ============================================================
+
+print("\n" + "=" * 60)
+print("STEP 2: Opening feature dataset")
+print("=" * 60)
+
+dataset = ds.dataset(
     FEATURE_FILE,
-    use_threads=False
+    format="parquet"
 )
 
-df = table.to_pandas()
-
-
-print("Feature dataset loaded.")
-
-print("Shape:", df.shape)
+print("Feature dataset opened successfully.")
 
 
 # ============================================================
-# 3. BASIC PREPARATION
+# STEP 3: Load ONLY validation rows
 # ============================================================
 
 print("\n" + "=" * 60)
-print("STEP 2: Preparing data")
+print("STEP 3: Loading validation data efficiently")
 print("=" * 60)
 
+print("Loading only:")
+print(" - date")
+print(" - demand")
+print(" - lag_7")
 
-df["date"] = pd.to_datetime(
-    df["date"]
+# Convert dates to PyArrow-compatible timestamps
+start_date = pd.Timestamp(validation_start).to_pydatetime()
+end_date = pd.Timestamp(validation_end).to_pydatetime()
+
+# Create filter
+date_filter = (
+    (ds.field("date") >= start_date)
+    &
+    (ds.field("date") <= end_date)
 )
 
-
-df["demand"] = pd.to_numeric(
-    df["demand"],
-    errors="coerce"
-)
-
-
-df["lag_7"] = pd.to_numeric(
-    df["lag_7"],
-    errors="coerce"
-)
-
-
-# Sort chronologically
-
-df = df.sort_values(
-    [
+# Read only 3 columns and only validation rows
+table = dataset.to_table(
+    columns=[
         "date",
-        "store_id",
-        "item_id"
-    ]
-).reset_index(drop=True)
-
-
-print("Date range:")
-print(
-    df["date"].min(),
-    "to",
-    df["date"].max()
+        "demand",
+        "lag_7"
+    ],
+    filter=date_filter
 )
+
+validation = table.to_pandas()
+
+del table
+
+print(f"\nValidation rows loaded: {len(validation):,}")
 
 
 # ============================================================
-# 4. CREATE TIME-BASED TRAIN / VALIDATION SPLIT
-# ============================================================
-
-print("\n" + "=" * 60)
-print("STEP 3: Creating train/validation split")
-print("=" * 60)
-
-
-# Use the final 28 days as validation.
-#
-# This simulates the real forecasting situation:
-#
-# Past data → train
-# Future 28 days → validation
-#
-# We DO NOT randomly split time-series data.
-
-max_date = df["date"].max()
-
-validation_start = (
-    max_date
-    - pd.Timedelta(days=27)
-)
-
-
-train_df = df[
-    df["date"] < validation_start
-].copy()
-
-
-validation_df = df[
-    df["date"] >= validation_start
-].copy()
-
-
-print("\nMaximum date:")
-print(max_date)
-
-
-print("\nValidation starts:")
-print(validation_start)
-
-
-print("\nTraining date range:")
-print(
-    train_df["date"].min(),
-    "to",
-    train_df["date"].max()
-)
-
-
-print("\nValidation date range:")
-print(
-    validation_df["date"].min(),
-    "to",
-    validation_df["date"].max()
-)
-
-
-print("\nTraining rows:")
-print(len(train_df))
-
-
-print("\nValidation rows:")
-print(len(validation_df))
-
-
-# ============================================================
-# 5. BASELINE PREDICTION
+# STEP 4: Create Seasonal Naive Predictions
 # ============================================================
 
 print("\n" + "=" * 60)
-print("STEP 4: Creating baseline predictions")
+print("STEP 4: Creating seasonal naive predictions")
 print("=" * 60)
 
+# Seasonal Naive:
+# Prediction = demand from 7 days ago
 
-# Baseline:
-#
-# Today's demand prediction
-# =
-# Demand from 7 days ago
-#
-# lag_7 was already created during feature engineering.
+validation["prediction"] = validation["lag_7"]
 
-validation_df["prediction"] = (
-    validation_df["lag_7"]
-)
-
-
-# Remove rows where baseline prediction is unavailable
-
-validation_df = validation_df.dropna(
+# Remove missing values
+validation = validation.dropna(
     subset=[
-        "prediction",
-        "demand"
+        "demand",
+        "prediction"
     ]
-).copy()
-
+)
 
 print(
-    "Validation rows with predictions:",
-    len(validation_df)
+    f"Rows used for evaluation: "
+    f"{len(validation):,}"
 )
 
 
 # ============================================================
-# 6. METRICS
+# STEP 5: Convert to NumPy
 # ============================================================
 
 print("\n" + "=" * 60)
-print("STEP 5: Evaluating baseline")
+print("STEP 5: Preparing evaluation arrays")
 print("=" * 60)
 
-
-actual = (
-    validation_df["demand"]
-    .to_numpy(dtype=float)
+actual = validation["demand"].to_numpy(
+    dtype=np.float64
 )
 
-
-predicted = (
-    validation_df["prediction"]
-    .to_numpy(dtype=float)
+predicted = validation["prediction"].to_numpy(
+    dtype=np.float64
 )
 
+print(f"Actual values:    {len(actual):,}")
+print(f"Predicted values: {len(predicted):,}")
 
-# ------------------------------------------------------------
-# MAE
-# ------------------------------------------------------------
+
+# ============================================================
+# STEP 6: Calculate errors
+# ============================================================
+
+print("\n" + "=" * 60)
+print("STEP 6: Calculating errors")
+print("=" * 60)
+
+errors = actual - predicted
+
+
+# ============================================================
+# STEP 7: Calculate MAE
+# ============================================================
 
 mae = np.mean(
-    np.abs(
-        actual - predicted
-    )
+    np.abs(errors)
 )
 
 
-# ------------------------------------------------------------
-# RMSE
-# ------------------------------------------------------------
+# ============================================================
+# STEP 8: Calculate RMSE
+# ============================================================
 
-rmse = math.sqrt(
-    np.mean(
-        (actual - predicted) ** 2
-    )
+rmse = np.sqrt(
+    np.mean(errors ** 2)
 )
 
 
-# ------------------------------------------------------------
-# sMAPE
-# ------------------------------------------------------------
+# ============================================================
+# STEP 9: Calculate sMAPE
+# ============================================================
 
-denominator = (
+smape_denominator = (
     np.abs(actual)
-    + np.abs(predicted)
+    +
+    np.abs(predicted)
 )
 
+smape_values = np.zeros_like(
+    errors,
+    dtype=np.float64
+)
 
-smape_values = np.where(
-    denominator == 0,
-    0,
+non_zero = smape_denominator != 0
+
+smape_values[non_zero] = (
     2
-    * np.abs(actual - predicted)
-    / denominator
+    * np.abs(errors[non_zero])
+    / smape_denominator[non_zero]
 )
 
-
-smape = (
-    np.mean(smape_values)
-    * 100
-)
+smape = np.mean(
+    smape_values
+) * 100
 
 
-# ------------------------------------------------------------
-# WAPE
-# ------------------------------------------------------------
+# ============================================================
+# STEP 10: Calculate WAPE
+# ============================================================
 
 total_actual = np.sum(
     np.abs(actual)
 )
 
-
 if total_actual == 0:
 
-    wape = 0
+    wape = 0.0
 
 else:
 
     wape = (
-        np.sum(
-            np.abs(actual - predicted)
-        )
-        / total_actual
-        * 100
+        np.sum(np.abs(errors))
+        /
+        total_actual
+        *
+        100
     )
 
 
 # ============================================================
-# 7. PRINT RESULTS
+# STEP 11: Display results
 # ============================================================
 
 print("\n" + "=" * 60)
-print("BASELINE RESULTS")
+print("BASELINE PERFORMANCE")
 print("=" * 60)
 
-
-print(
-    f"\nMAE:   {mae:.4f}"
-)
-
-
-print(
-    f"RMSE:  {rmse:.4f}"
-)
-
-
-print(
-    f"sMAPE: {smape:.2f}%"
-)
-
-
-print(
-    f"WAPE:  {wape:.2f}%"
-)
+print(f"MAE:   {mae:.4f}")
+print(f"RMSE:  {rmse:.4f}")
+print(f"sMAPE: {smape:.2f}%")
+print(f"WAPE:  {wape:.2f}%")
 
 
 # ============================================================
-# 8. ADDITIONAL INFORMATION
+# STEP 12: Save metrics
 # ============================================================
 
 print("\n" + "=" * 60)
-print("VALIDATION INFORMATION")
+print("STEP 12: Saving baseline metrics")
 print("=" * 60)
 
-
-print(
-    "\nNumber of validation days:",
-    validation_df["date"].nunique()
+REPORT_FILE.parent.mkdir(
+    parents=True,
+    exist_ok=True
 )
-
-
-print(
-    "Number of stores:",
-    validation_df["store_id"].nunique()
-)
-
-
-print(
-    "Number of items:",
-    validation_df["item_id"].nunique()
-)
-
-
-print(
-    "Actual total demand:",
-    round(
-        validation_df["demand"].sum(),
-        2
-    )
-)
-
-
-print(
-    "Predicted total demand:",
-    round(
-        validation_df["prediction"].sum(),
-        2
-    )
-)
-
-
-# ============================================================
-# 9. SAVE METRICS
-# ============================================================
-
-print("\n" + "=" * 60)
-print("STEP 6: Saving baseline metrics")
-print("=" * 60)
-
 
 metrics = {
-
-    "model": "Seasonal Naive - Lag 7",
-
-    "validation_days": int(
-        validation_df["date"].nunique()
-    ),
-
-    "train_start": str(
-        train_df["date"].min().date()
-    ),
-
-    "train_end": str(
-        train_df["date"].max().date()
-    ),
-
-    "validation_start": str(
-        validation_df["date"].min().date()
-    ),
-
-    "validation_end": str(
-        validation_df["date"].max().date()
-    ),
-
-    "training_rows": int(
-        len(train_df)
-    ),
-
-    "validation_rows": int(
-        len(validation_df)
-    ),
-
+    "model": "Seasonal Naive",
+    "validation_days": VALIDATION_DAYS,
+    "validation_start": validation_start,
+    "validation_end": validation_end,
+    "validation_rows": int(len(actual)),
     "mae": float(mae),
-
     "rmse": float(rmse),
-
     "smape_percent": float(smape),
-
     "wape_percent": float(wape)
 }
 
-
 with open(
-    METRICS_FILE,
+    REPORT_FILE,
     "w"
-) as file:
+) as f:
 
     json.dump(
         metrics,
-        file,
+        f,
         indent=4
     )
 
-
-print(
-    "\nMetrics saved to:"
-)
-
-print(
-    METRICS_FILE
-)
+print(f"\nSaved metrics to:")
+print(REPORT_FILE)
 
 
 # ============================================================
-# 10. SHOW SAMPLE PREDICTIONS
+# COMPLETE
 # ============================================================
 
 print("\n" + "=" * 60)
-print("SAMPLE PREDICTIONS")
+print("BASELINE MODEL COMPLETE")
 print("=" * 60)
-
-
-sample_columns = [
-    "date",
-    "store_id",
-    "item_id",
-    "demand",
-    "lag_7",
-    "prediction"
-]
-
-
-print(
-    validation_df[
-        sample_columns
-    ].head(10)
-)
-
-
-# ============================================================
-# 11. COMPLETION
-# ============================================================
-
-print("\n" + "=" * 60)
-print("BASELINE MODEL COMPLETED SUCCESSFULLY! ✅")
-print("=" * 60)
-
-print("\nBaseline model:")
-print("Seasonal Naive using lag_7")
-
-print("\nNext step:")
-print("Train an ML model and compare it against this baseline.")
