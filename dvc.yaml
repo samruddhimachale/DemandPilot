@@ -1,0 +1,64 @@
+stages:
+
+  preprocess:
+    cmd: python src/data/preprocess.py
+    deps:
+      - src/data/preprocess.py
+      - data/raw
+    outs:
+      - data/processed/train.parquet
+
+  features:
+    cmd: python src/features/build_features.py
+    deps:
+      - src/features/build_features.py
+      - data/processed/train.parquet
+    outs:
+      - data/processed/features.parquet
+
+  train_baseline:
+    cmd: python src/training/train_baseline.py
+    deps:
+      - src/training/train_baseline.py
+      - data/processed/features.parquet
+    metrics:
+      - reports/baseline_metrics.json
+
+  train_xgboost:
+    cmd: python src/training/train_xgboost.py
+    deps:
+      - src/training/train_xgboost.py
+      - data/processed/features.parquet
+    outs:
+      - models/xgboost_demand_model.json
+      - reports/xgboost_feature_importance.csv
+    metrics:
+      - reports/xgboost_metrics.json
+
+  compare_models:
+    cmd: python src/training/compare_models.py
+    deps:
+      - src/training/compare_models.py
+      - reports/baseline_metrics.json
+      - reports/xgboost_metrics.json
+    outs:
+      - reports/model_comparison.csv
+      - reports/model_selection.json
+
+  diagnostics:
+    cmd: python src/training/model_diagnostics.py
+    deps:
+      - src/training/model_diagnostics.py
+      - reports/xgboost_metrics.json
+    outs:
+      - reports/model_diagnostics.json
+
+  error_analysis:
+    cmd: python src/training/error_analysis.py
+    deps:
+      - src/training/error_analysis.py
+      - data/processed/features.parquet
+      - models/xgboost_demand_model.json
+      - reports/xgboost_metrics.json
+    outs:
+      - reports/error_analysis.csv

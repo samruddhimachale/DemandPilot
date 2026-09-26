@@ -1,0 +1,139 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/data/preprocess.py
+    deps:
+    - path: data/raw
+      hash: md5
+      md5: 5afd6a41a1b2b1699ab830823eddc19b.dir
+      size: 488511649
+      nfiles: 8
+    - path: src/data/preprocess.py
+      hash: md5
+      md5: 6b6323ef007f6acdc781ee1ba1fd9c29
+      size: 10353
+    outs:
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 0c3e7847816f76b9e6b9e4aa0b1fc457
+      size: 209106247
+  features:
+    cmd: python src/features/build_features.py
+    deps:
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 0c3e7847816f76b9e6b9e4aa0b1fc457
+      size: 209106247
+    - path: src/features/build_features.py
+      hash: md5
+      md5: 8e71c2f113044ef95d3652420ff341ab
+      size: 13997
+    outs:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+  train_baseline:
+    cmd: python src/training/train_baseline.py
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+    - path: src/training/train_baseline.py
+      hash: md5
+      md5: 1884237da6aac3c22a151e353a92aed0
+      size: 6481
+    outs:
+    - path: reports/baseline_metrics.json
+      hash: md5
+      md5: 4daf97a9c6ee0bc71b09946389c20f7a
+      size: 315
+  train_xgboost:
+    cmd: python src/training/train_xgboost.py
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+    - path: src/training/train_xgboost.py
+      hash: md5
+      md5: 3483a6be9545f340178267a92608b560
+      size: 13272
+    outs:
+    - path: models/xgboost_demand_model.json
+      hash: md5
+      md5: c4a2f34be5ced920933683e5c00f0f32
+      size: 6268257
+    - path: reports/xgboost_feature_importance.csv
+      hash: md5
+      md5: a7d8bf948eaa5e64435c13eb0ee369d7
+      size: 709
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: d73061954aaaba0735d86217fc01db1e
+      size: 440
+  compare_models:
+    cmd: python src/training/compare_models.py
+    deps:
+    - path: reports/baseline_metrics.json
+      hash: md5
+      md5: 4daf97a9c6ee0bc71b09946389c20f7a
+      size: 315
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: d73061954aaaba0735d86217fc01db1e
+      size: 440
+    - path: src/training/compare_models.py
+      hash: md5
+      md5: 251c6fab08115134977ed9da2367cbdd
+      size: 5994
+    outs:
+    - path: reports/model_comparison.csv
+      hash: md5
+      md5: 8deebe05a0681ae4dbac8fbc4b93f8d6
+      size: 206
+    - path: reports/model_selection.json
+      hash: md5
+      md5: 6b8214516db6d90be6366e7f4846092b
+      size: 715
+  diagnostics:
+    cmd: python src/training/model_diagnostics.py
+    deps:
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: d73061954aaaba0735d86217fc01db1e
+      size: 440
+    - path: src/training/model_diagnostics.py
+      hash: md5
+      md5: 89dcc66bdb4467f6b306ff17cf0324a7
+      size: 8232
+    outs:
+    - path: reports/model_diagnostics.json
+      hash: md5
+      md5: 18089173da0c175f8c9e87d3679df3bc
+      size: 880
+  error_analysis:
+    cmd: python src/training/error_analysis.py
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+    - path: models/xgboost_demand_model.json
+      hash: md5
+      md5: c4a2f34be5ced920933683e5c00f0f32
+      size: 6268257
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: d73061954aaaba0735d86217fc01db1e
+      size: 440
+    - path: src/training/error_analysis.py
+      hash: md5
+      md5: 40d1dde38eb941f4556e1f963a7195d1
+      size: 9617
+    outs:
+    - path: reports/error_analysis.csv
+      hash: md5
+      md5: b0aabd0242c6cac4236b03ca58367b93
+      size: 63202778
