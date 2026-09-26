@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# MLflow
+mlflow.db
+mlflow.db-journal
+mlartifacts/
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Large Generated Reports
+reports/error_analysis.csv
+
+# OS / IDE Files
+.DS_Store
+Thumbs.db
+.vscode/settings.json
