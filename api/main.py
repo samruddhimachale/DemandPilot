@@ -29,11 +29,11 @@ MODEL_PATH = (
 # ============================================================
 
 model = xgb.XGBRegressor()
+model_loaded = False
 
-model.load_model(
-    MODEL_PATH
-)
-
+if MODEL_PATH.exists():
+    model.load_model(MODEL_PATH)
+    model_loaded = True
 
 # ============================================================
 # FASTAPI APPLICATION
@@ -64,7 +64,7 @@ def health():
 
     return {
         "status": "healthy",
-        "model_loaded": True
+        "model_loaded": model_loaded
     }
 
 
