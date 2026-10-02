@@ -4,3 +4,5 @@
 /model_comparison.csv
 /model_selection.json
 /model_diagnostics.json
+/monitoring_metrics.csv
+/monitoring_alerts.csv

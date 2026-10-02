@@ -137,3 +137,59 @@ stages:
       hash: md5
       md5: b0aabd0242c6cac4236b03ca58367b93
       size: 63202778
+  monitoring:
+    cmd: python src/monitoring/monitor.py
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+    - path: models/xgboost_demand_model.json
+      hash: md5
+      md5: c4a2f34be5ced920933683e5c00f0f32
+      size: 6268257
+    - path: src/monitoring/monitor.py
+      hash: md5
+      md5: 716ed3b00113065eb0504fbc66b276bc
+      size: 4220
+    outs:
+    - path: reports/monitoring_metrics.csv
+      hash: md5
+      md5: ae84429e298f8f0922417c9550d3077d
+      size: 173
+    - path: reports/monitoring_predictions.csv
+      hash: md5
+      md5: 5ef4fe95f698e856c756588b4df17b8b
+      size: 37210781
+  drift_detection:
+    cmd: python src/monitoring/drift_report.py
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+    - path: src/monitoring/drift_report.py
+      hash: md5
+      md5: 49e99442689439c0cea8d56157d8048d
+      size: 3144
+    outs:
+    - path: reports/data_drift_report.html
+      hash: md5
+      md5: efca08c1a4a64327e93e9c86114a4b1f
+      size: 4480150
+  monitoring_alerts:
+    cmd: python src/monitoring/monitoring_alerts.py
+    deps:
+    - path: reports/monitoring_metrics.csv
+      hash: md5
+      md5: ae84429e298f8f0922417c9550d3077d
+      size: 173
+    - path: src/monitoring/monitoring_alerts.py
+      hash: md5
+      md5: 09b9c4fd1111e7cf5f4c4567530dbd63
+      size: 2683
+    outs:
+    - path: reports/monitoring_alerts.csv
+      hash: md5
+      md5: f032dbac3a7c25f938f95dc86b3f7e6a
+      size: 108

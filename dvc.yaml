@@ -62,3 +62,29 @@ stages:
       - reports/xgboost_metrics.json
     outs:
       - reports/error_analysis.csv
+  monitoring:
+    cmd: python src/monitoring/monitor.py
+    deps:
+      - src/monitoring/monitor.py
+      - data/processed/features.parquet
+      - models/xgboost_demand_model.json
+    outs:
+      - reports/monitoring_predictions.csv
+    metrics:
+      - reports/monitoring_metrics.csv
+
+  drift_detection:
+    cmd: python src/monitoring/drift_report.py
+    deps:
+      - src/monitoring/drift_report.py
+      - data/processed/features.parquet
+    outs:
+      - reports/data_drift_report.html
+
+  monitoring_alerts:
+    cmd: python src/monitoring/monitoring_alerts.py
+    deps:
+      - src/monitoring/monitoring_alerts.py
+      - reports/monitoring_metrics.csv
+    metrics:
+      - reports/monitoring_alerts.csv

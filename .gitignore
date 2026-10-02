@@ -30,3 +30,7 @@ reports/error_analysis.csv
 .DS_Store
 Thumbs.db
 .vscode/settings.json
+
+# Monitoring generated artifacts
+reports/monitoring_predictions.csv
+reports/data_drift_report.html
