@@ -16,7 +16,8 @@ MODELS_DIR = PROJECT_ROOT / "models"
 METRICS_FILE = REPORTS_DIR / "xgboost_metrics.json"
 MODEL_FILE = MODELS_DIR / "xgboost_demand_model.json"
 FEATURE_IMPORTANCE_FILE = REPORTS_DIR / "xgboost_feature_importance.csv"
-FINAL_SUMMARY_FILE = REPORTS_DIR / "final_model_summary.json"
+FINAL_SUMMARY_FILE = REPORTS_DIR / "model_diagnostics.json"
+
 
 MLFLOW_DB = PROJECT_ROOT / "mlflow.db"
 ARTIFACT_DIR = PROJECT_ROOT / "mlartifacts"

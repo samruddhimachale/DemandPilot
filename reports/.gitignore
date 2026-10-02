@@ -6,3 +6,5 @@
 /model_diagnostics.json
 /monitoring_metrics.csv
 /monitoring_alerts.csv
+/shap_feature_importance.csv
+/shap_values.csv

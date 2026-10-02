@@ -193,3 +193,110 @@ stages:
       hash: md5
       md5: f032dbac3a7c25f938f95dc86b3f7e6a
       size: 108
+  baseline:
+    cmd: python src/training/train_baseline.py
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+    - path: src/training/train_baseline.py
+      hash: md5
+      md5: 1884237da6aac3c22a151e353a92aed0
+      size: 6481
+    outs:
+    - path: reports/baseline_metrics.json
+      hash: md5
+      md5: 4daf97a9c6ee0bc71b09946389c20f7a
+      size: 315
+  xgboost:
+    cmd: python src/training/train_xgboost.py
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+    - path: src/training/train_xgboost.py
+      hash: md5
+      md5: 3483a6be9545f340178267a92608b560
+      size: 13272
+    outs:
+    - path: models/xgboost_demand_model.json
+      hash: md5
+      md5: c4a2f34be5ced920933683e5c00f0f32
+      size: 6268257
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: d73061954aaaba0735d86217fc01db1e
+      size: 440
+  model_comparison:
+    cmd: python src/training/compare_models.py
+    deps:
+    - path: reports/baseline_metrics.json
+      hash: md5
+      md5: 4daf97a9c6ee0bc71b09946389c20f7a
+      size: 315
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: d73061954aaaba0735d86217fc01db1e
+      size: 440
+    - path: src/training/compare_models.py
+      hash: md5
+      md5: 251c6fab08115134977ed9da2367cbdd
+      size: 5994
+    outs:
+    - path: reports/model_comparison.csv
+      hash: md5
+      md5: 8deebe05a0681ae4dbac8fbc4b93f8d6
+      size: 206
+    - path: reports/model_selection.json
+      hash: md5
+      md5: 6b8214516db6d90be6366e7f4846092b
+      size: 715
+  mlflow_tracking:
+    cmd: python src/training/mlflow_tracking.py
+    deps:
+    - path: models/xgboost_demand_model.json
+      hash: md5
+      md5: c4a2f34be5ced920933683e5c00f0f32
+      size: 6268257
+    - path: reports/model_diagnostics.json
+      hash: md5
+      md5: 18089173da0c175f8c9e87d3679df3bc
+      size: 880
+    - path: reports/model_selection.json
+      hash: md5
+      md5: 6b8214516db6d90be6366e7f4846092b
+      size: 715
+    - path: reports/xgboost_metrics.json
+      hash: md5
+      md5: d73061954aaaba0735d86217fc01db1e
+      size: 440
+    - path: src/training/mlflow_tracking.py
+      hash: md5
+      md5: c0f009dd4c8c6bdd6b3fdcfc02192de4
+      size: 7361
+  explainability:
+    cmd: python src/training/explain_model.py
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 69869850d3b0a694da590b0b6ac81159
+      size: 547870284
+    - path: models/xgboost_demand_model.json
+      hash: md5
+      md5: c4a2f34be5ced920933683e5c00f0f32
+      size: 6268257
+    - path: src/training/explain_model.py
+      hash: md5
+      md5: 53483b6eb98b9133140c974c6f31a9b1
+      size: 4116
+    outs:
+    - path: reports/shap_feature_importance.csv
+      hash: md5
+      md5: 95e5fb9cdee96b980c6b529b18f09af8
+      size: 719
+    - path: reports/shap_values.csv
+      hash: md5
+      md5: 54333fbfa9c5ce9a2d828594cf4f8d24
+      size: 1940612

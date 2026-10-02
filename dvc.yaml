@@ -16,26 +16,25 @@ stages:
     outs:
       - data/processed/features.parquet
 
-  train_baseline:
+  baseline:
     cmd: python src/training/train_baseline.py
     deps:
       - src/training/train_baseline.py
       - data/processed/features.parquet
-    metrics:
+    outs:
       - reports/baseline_metrics.json
 
-  train_xgboost:
+  xgboost:
     cmd: python src/training/train_xgboost.py
     deps:
       - src/training/train_xgboost.py
       - data/processed/features.parquet
     outs:
       - models/xgboost_demand_model.json
-      - reports/xgboost_feature_importance.csv
     metrics:
       - reports/xgboost_metrics.json
 
-  compare_models:
+  model_comparison:
     cmd: python src/training/compare_models.py
     deps:
       - src/training/compare_models.py
@@ -59,9 +58,18 @@ stages:
       - src/training/error_analysis.py
       - data/processed/features.parquet
       - models/xgboost_demand_model.json
-      - reports/xgboost_metrics.json
     outs:
       - reports/error_analysis.csv
+
+  mlflow_tracking:
+    cmd: python src/training/mlflow_tracking.py
+    deps:
+      - src/training/mlflow_tracking.py
+      - reports/xgboost_metrics.json
+      - reports/model_selection.json
+      - reports/model_diagnostics.json
+      - models/xgboost_demand_model.json
+
   monitoring:
     cmd: python src/monitoring/monitor.py
     deps:
@@ -88,3 +96,13 @@ stages:
       - reports/monitoring_metrics.csv
     metrics:
       - reports/monitoring_alerts.csv
+
+  explainability:
+    cmd: python src/training/explain_model.py
+    deps:
+      - src/training/explain_model.py
+      - data/processed/features.parquet
+      - models/xgboost_demand_model.json
+    outs:
+      - reports/shap_feature_importance.csv
+      - reports/shap_values.csv
