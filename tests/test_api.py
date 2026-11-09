@@ -29,11 +29,11 @@ def test_prediction(monkeypatch):
     monkeypatch.setattr(main, "model_loaded", True)
 
     payload = {
-        "item_id": 1,
-        "dept_id": 1,
-        "cat_id": 1,
-        "store_id": 1,
-        "state_id": 1,
+        "item_id": "FOODS_1_001",
+        "dept_id": "FOODS_1",
+        "cat_id": "FOODS",
+        "store_id": "CA_1",
+        "state_id": "CA",
         "day_of_week": 1,
         "day_of_month": 15,
         "week_of_year": 20,

@@ -1,0 +1,11 @@
+{
+    "model": "Seasonal Naive",
+    "validation_days": 28,
+    "validation_start": "2016-03-28",
+    "validation_end": "2016-04-24",
+    "validation_rows": 853720,
+    "mae": 1.205351871808087,
+    "rmse": 2.660111796733238,
+    "smape_percent": 79.64941493664593,
+    "wape_percent": 86.93903310674149
+}

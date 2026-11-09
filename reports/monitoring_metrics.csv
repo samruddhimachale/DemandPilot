@@ -1,0 +1,2 @@
+validation_start,validation_end,observations,mae,wape_percent,zero_demand_rate_percent
+2016-03-28,2016-04-24,853720,0.9940439109568198,71.69791536026212,56.27840509769011

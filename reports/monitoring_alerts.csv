@@ -1,0 +1,4 @@
+metric,value,threshold,status
+MAE,0.9940439109568198,1.2,OK
+WAPE,71.69791536026212,90.0,OK
+overall,,,OK
