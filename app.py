@@ -17,7 +17,7 @@ import streamlit.components.v1 as components
 
 BASE_DIR = Path(__file__).resolve().parent
 REPORTS_DIR = BASE_DIR / "reports"
-API_URL = os.environ.get("DEMANDPILOT_API_URL", "http://127.0.0.1:8000").rstrip("/")
+API_URL = "https://demandpilot-api.onrender.com"
 
 st.set_page_config(
     page_title="DemandPilot | MLOps Dashboard",
@@ -786,3 +786,4 @@ st.caption(
     "DemandPilot | Retail Demand and Inventory Forecasting | "
     "MLOps Project"
 )
+
